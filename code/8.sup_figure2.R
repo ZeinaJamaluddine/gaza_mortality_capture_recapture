@@ -77,13 +77,13 @@ p_bottom <- ggplot(month_df, aes(x = stratum, group = 1)) +
   
   geom_text(aes(y = percentage, 
                 label = scales::percent(percentage, accuracy = 1)),
-            vjust = -0.5, size=4.5, family="Times New Roman") + # Increase text label size
+            vjust = -0.5, size=4.5, family="Times New Roman") +
   
   scale_y_continuous(labels= scales::percent_format(), limits=c(0,1.0), expand=expansion(mult=c(0.05,0.1))) + 
   labs(x="Month",
        y="Percentage of deaths unlisted") + 
   theme_minimal(base_family="Times New Roman") + 
-  theme(axis.text.x=element_text(angle=0,hjust=0.5,family="Times New Roman",size=14), # Increase x-axis text size
+  theme(axis.text.x=element_text(angle=0,hjust=0.5,family="Times New Roman",size=14), 
         axis.text.y=element_text(family="Times New Roman",size=14), # Increase y-axis text size
         axis.title.y=element_text(family="Times New Roman",size=16), # Increase y-axis title size
         text=element_text(family="Times New Roman",size=14)) # Increase overall text size
