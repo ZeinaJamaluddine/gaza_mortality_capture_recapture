@@ -157,7 +157,7 @@ gender_plot <- df %>%
 
 gender_plot <- add_space(gender_plot)
 
-# Combine plots with cowplot
+# Combine plots 
 combined_plot <- plot_grid(
   monthly_plot,
   plot_grid(age_plot + theme(legend.position="none"),
@@ -168,10 +168,9 @@ combined_plot <- plot_grid(
   rel_heights=c(1.2,1.7)
 )
 
-# Add title to the combined plot
 final_plot <- plot_grid(combined_plot,ncol=1,rel_heights=c(1))
 print(combined_plot)
 
-# Save the combined plot as a high-resolution PNG image
+# Save the combined plot 
 
 ggsave("C:/Users/Zeina Jamaluddine/OneDrive - London School of Hygiene and Tropical Medicine/gaza-capture recapture/github/output/2.figure2.pdf",  plot = combined_plot, width=200,height=247,units="mm", device = cairo_pdf, bg = "white")
