@@ -147,7 +147,7 @@ plot_destruction <- plot_destruction +
     legend.title = element_text(size = 10),
     plot.title = element_text(size = 12)
   )
-# Combine all plots without excess space, keeping top section size fixed
+# Combine all plots
 top_plot <- (plot1A + plot1B + plot_map) + 
   plot_layout(ncol = 3, widths = c(2, 2, 1)) & 
   theme(plot.margin = margin(10, 5, 5, 5))  
@@ -162,7 +162,7 @@ plot_destruction <- plot_destruction +
     plot.title = element_text(size = 12)
   )
 
-# Combine the plots, reducing the size of the bottom plot
+# Combine the plots
 combined_plot <- plot_spacer()/top_plot /plot_spacer()/ plot_destruction / plot_spacer() +
   plot_layout(ncol = 1, heights = c(0.5, 1,0.1,1,0.5)) & 
   theme(plot.margin = margin(30, 10, 10, 30))  
