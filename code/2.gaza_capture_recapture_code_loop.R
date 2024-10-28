@@ -105,9 +105,12 @@ for (i in pars_in[, "loc_df"]) {
   for (imp_index in 1:length(imputed_datasets)) {
     df <- imputed_datasets[[imp_index]]
     
+    ######### FIGURE OUT WHY exposure stopped working! it was working! 
+    ######### generate a gender age categorical variable
+    ######### The gender as confounder  works 
     pars_index <- which(pars_in[, "loc_df"] == i)
-    pars_in[pars_index, "confounders"] <- "gender, month_death"
-    pars_in[pars_index, "exposure"] <- "age_group"
+    pars_in[pars_index, "confounders"] <- "age, month_death"
+    pars_in[pars_index, "exposure"] <- "gender"
     
     overlap <- f_overlap(df, i, pars_in, palette_cb)
     
