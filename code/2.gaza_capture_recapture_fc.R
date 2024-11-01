@@ -426,6 +426,9 @@
       est_agesex <- est_agesex[order(est_agesex$n_imp, 
         est_agesex$agesex, est_agesex$n_model), ]
       
+      # age-sex stratification, unadjusted
+      est_agesex_unadj <- est_agesex
+      
       # month stratification, adjusted for age (continuous) and sex
       est_month_death <- expand.grid(n_imp = 1:max(long$.imp), 
         month_death = levels(long$month_death), n_model = 1:8)
@@ -445,12 +448,20 @@
       # progress update
       setTxtProgressBar(pb, i)
           
-      # estimate mortality by age-sex and update output dataframe
+      # estimate mortality by age-sex (adjusted) and update output dataframe
       out <- f_prepare(data_f = long[which(long$.imp == i), ], 
         confounders = "month_death")
       out_agesex <- f_model(stratum = "agesex", 
         confounders = "month_death", verbose = F)
       est_agesex[which(est_agesex$n_imp==i),colnames(out_agesex)] <- out_agesex
+      
+      # estimate mortality by age-sex (unadjusted) and update output dataframe
+      out <- f_prepare(data_f = long[which(long$.imp == i), ], 
+        confounders = NA)
+      out_agesex_unadj <- f_model(stratum = "agesex", 
+        confounders = NA, verbose = F)
+      est_agesex_unadj[which(est_agesex_unadj$n_imp==i),
+        colnames(out_agesex_unadj)] <- out_agesex_unadj
       
       # estimate mortality by month and update output dataframe
       out <- f_prepare(data_f = long[which(long$.imp == i), ], 
@@ -464,6 +475,7 @@
 
     # Save outputs
     saveRDS(est_agesex, paste0(dir_path, "output/est_agesex.rds"))
+    saveRDS(est_agesex_unadj, paste0(dir_path, "output/est_agesex_unadj.rds"))
     saveRDS(est_month_death, paste0(dir_path, "output/est_month_death.rds"))
 
     
@@ -498,7 +510,23 @@
       apply(x[, c("unlisted_est","unlisted_lci","unlisted_uci")], 2, 
         function(xx) {round(as.numeric(xx), 0)})
     ave_agesex <- x
-    
+
+    # Age-sex stratification (unadjusted)
+    x <- by(est_agesex_unadj, est_agesex_unadj[, c("n_imp", "stratum")], 
+      function(xx) {return(c(unique(xx$n_imp), unique(xx$stratum), 
+        apply(xx[which(xx$eligible), c("list1","list2","list3","listed", 
+          "unlisted_est","unlisted_lci","unlisted_uci")], 
+        2, weighted.mean, w = xx$post_prob)))
+    })
+    x <- as.data.frame(do.call(rbind, x))
+    colnames(x)[1:2] <- c("n_imp", "stratum")
+    x[, grep("list", colnames(x))] <- apply(x[, grep("list", colnames(x))], 2,
+      as.numeric)
+    x[, c("unlisted_est","unlisted_lci","unlisted_uci")] <- 
+      apply(x[, c("unlisted_est","unlisted_lci","unlisted_uci")], 2, 
+        function(xx) {round(as.numeric(xx), 0)})
+    ave_agesex_unadj <- x
+        
     # Month of death stratification
     x <- by(est_month_death, est_month_death[, c("n_imp", "stratum")], 
       function(xx) {return(c(unique(xx$n_imp), unique(xx$stratum), 
@@ -519,6 +547,8 @@
     x <- paste("total", stats, sep = "_")
     ave_agesex[, x] <- ave_agesex$listed + 
       ave_agesex[, paste("unlisted", stats, sep = "_")]
+    ave_agesex_unadj[, x] <- ave_agesex_unadj$listed + 
+      ave_agesex_unadj[, paste("unlisted", stats, sep = "_")]
     ave_month_death[, x] <- ave_month_death$listed + 
       ave_month_death[, paste("unlisted", stats, sep = "_")]
     
@@ -537,6 +567,13 @@
     x <- aggregate(ave_agesex[, vars], 
       by = ave_agesex[, c("age_cat", "gender")], median)
     write.csv(x, paste0(dir_path, "output/est_by_age_sex.csv"), row.names = F)
+    
+    # Mortality by age and sex (unadjusted)
+    ave_agesex_unadj[, c("age_cat", "gender")] <- 
+      t(sapply(strsplit(as.character(ave_agesex_unadj$stratum), "_"), rbind))
+    x <- aggregate(ave_agesex_unadj[, vars], 
+      by = ave_agesex_unadj[, c("age_cat", "gender")], median)
+    write.csv(x, paste0(dir_path,"output/est_by_age_sex_unadj.csv"),row.names=F)
     
     # List sensitivity by age and sex
     sens <- x
