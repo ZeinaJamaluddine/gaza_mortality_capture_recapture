@@ -83,7 +83,7 @@
       # from model averaging
 
     # Number of MICE imputations
-    n_imp <- 100
+    n_imp <- 7
     
 #...............................................................................
 ### Describing the data
@@ -299,8 +299,9 @@
   ## Now run desired number of iterations
     
     # Run iterations
-    imp <- mice(df, m = n_imp, maxit = 5, method = "rf")
-    
+    imp <- mice(df, m = n_imp, maxit = 5, 
+      defaultMethod = c("rf", "rf", "sample", "rf") )
+
     # Extract, manage and save imputed datasets in long format
     long <- complete(imp, "long")
     
@@ -500,7 +501,7 @@
       return(c(unique(xx$n_imp), unique(xx$stratum), 
         apply(xx[which(xx$eligible), c("list1","list2","list3","listed", 
           "unlisted_est","unlisted_lci","unlisted_uci")], 
-        2, weighted.mean, w = xx$post_prob)))
+        2, weighted.mean, w = xx[which(xx$eligible), "post_prob"])))
     })
     x <- as.data.frame(do.call(rbind, x))
     colnames(x)[1:2] <- c("n_imp", "stratum")
@@ -516,7 +517,7 @@
       function(xx) {return(c(unique(xx$n_imp), unique(xx$stratum), 
         apply(xx[which(xx$eligible), c("list1","list2","list3","listed", 
           "unlisted_est","unlisted_lci","unlisted_uci")], 
-        2, weighted.mean, w = xx$post_prob)))
+        2, weighted.mean, w = xx[which(xx$eligible), "post_prob"])))
     })
     x <- as.data.frame(do.call(rbind, x))
     colnames(x)[1:2] <- c("n_imp", "stratum")
@@ -532,7 +533,7 @@
       function(xx) {return(c(unique(xx$n_imp), unique(xx$stratum), 
         apply(xx[which(xx$eligible), c("list1","list2","list3","listed", 
           "unlisted_est","unlisted_lci","unlisted_uci")], 
-        2, weighted.mean, w = xx$post_prob)))
+        2, weighted.mean, w = xx[which(xx$eligible), "post_prob"])))
     })
     x <- as.data.frame(do.call(rbind, x))
     colnames(x)[1:2] <- c("n_imp", "stratum")
