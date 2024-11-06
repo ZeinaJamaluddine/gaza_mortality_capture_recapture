@@ -1,100 +1,115 @@
 #..........................................................................................
-###      Gaza-CAPTURE-RECAPTURE ANALYSIS Figure 3    ###
+###      Gaza-CAPTURE-RECAPTURE ANALYSIS Figure 3   ###
 #..........................................................................................
 
 #..........................................................................................
 
-# Load required libraries
-library(ggplot2)
-library(dplyr)
-library(tidyr)
-library(readxl)
-library(viridis)
+#...................................      
+## Starting setup
+library(tidyverse)
+library(eulerr)
 library(gridExtra)
+library(viridis)
 library(extrafont)
-library(ggthemes)
-loadfonts(device = "win")
 
-# Read the Excel file
-rate_df <- read_excel("C:/Users/Zeina Jamaluddine/OneDrive - London School of Hygiene and Tropical Medicine/gaza-capture recapture/github/input/3.figure3.xlsx")
+loadfonts(device = "win")  
+# Clean up from previous code / runs
+rm(list=ls(all=T) )
 
-# Define the correct age order and labels
-age_order <- c("0", "1-4", "5-9", "10-14", "15-19", "20-24", "25-29", "30-34", 
-               "35-39", "40-44", "45-49", "50-54", "55-59", "60-64", "65-69", 
-               "70-74", "75-79", "80 plus")
+# Set font
+windowsFonts(Arial=windowsFont("Arial"))
 
-# Reshape the data
-rate_df_long <- rate_df %>%
-  pivot_longer(
-    cols = c(starts_with("estimate_"), starts_with("lci_"), starts_with("uci_")),
-    names_to = c(".value", "gender"),
-    names_pattern = "(estimate|lci|uci)_(.+)"
-  ) %>%
-  filter(gender %in% c("male", "female")) %>%
-  mutate(age = factor(age, levels = rate_df$age, labels = age_order),
-         gender = factor(gender, levels = c("male", "female"), labels = c("Male", "Female")))
+# Set working directory to where this file is stored
+dir_path <- paste0(dirname(rstudioapi::getActiveDocumentContext()$path),"/")
+setwd(dir_path)
+print( getwd() )
+dir_path <- gsub("/code", "", dir_path)
+suppressWarnings(dir.create(paste0(dir_path, "output")))
 
-# Prepare pre-war data
-prewar_data <- rate_df %>%
-  dplyr::select(age, estimate_prewar) %>%
-  rename(estimate = estimate_prewar) %>%
-  mutate(gender = "Pre-war", 
-         age = factor(age, levels = rate_df$age, labels = age_order))
+# Initialise random numbers
+set.seed(123)
 
-# Combine the data
-rate_df_combined <- bind_rows(rate_df_long, prewar_data) %>%
-  mutate(gender = factor(gender, levels = c("Male", "Female", "Pre-war")))
+# Colour-blind palette for graphing
+palette_gen <- viridis(16)
+show_col(palette_gen)
 
-# Create custom color palette using Viridis
-custom_colors <- viridis(3, option = "D", end = 0.8)
 
-# Create the plot
-p <- ggplot(rate_df_combined, aes(x = age, y = estimate, color = gender, group = gender)) +
-  geom_line(data = rate_df_combined %>% filter(gender != "Pre-war"), size = 1.2) +
-  geom_line(data = rate_df_combined %>% filter(gender == "Pre-war"), size = 1.2, linetype = "dashed") +
-  geom_ribbon(data = rate_df_long, aes(ymin = lci, ymax = uci, fill = gender), alpha = 0.2, color = NA) +
-  scale_color_manual(values = setNames(custom_colors, c("Male", "Female", "Pre-war"))) +
-  scale_fill_manual(values = setNames(custom_colors[1:2], c("Male", "Female"))) +
-  labs(y = "Annualised age-specific mortality rate per 1,000",
-       x = "Age group (years)",
-       ) +
-  theme_few() +
-  theme(
-    text = element_text(family = "Arial", size = 12),
-    legend.position = c(0.05, 0.95),
-    legend.justification = c(0, 1),
-    legend.background = element_rect(fill = "white", color = NA),
-    legend.title = element_blank(),
-    legend.text = element_text(size = 10),
-    axis.text.x = element_text(angle = 45, hjust = 1, size = 10),
-    axis.text.y = element_text(size = 10),
-    axis.title = element_text(size = 12),
-    plot.title = element_text(size = 14, face = "bold"),
-    panel.grid.major = element_line(color = "gray90"),
-    panel.grid.minor = element_blank()
-  ) +
-  scale_x_discrete(breaks = age_order) +
-  scale_y_continuous(expand = c(0, 0), limits = c(0, max(rate_df_combined$estimate) * 1.1)) +
-  guides(fill = "none")
+#...................................      
+## Read dataset and source functions
 
-# Create rate ratio table
-rate_ratio_table <- rate_df %>%
-  mutate(age = factor(age, levels = rate_df$age, labels = age_order)) %>%
-  dplyr::select(age, rate_ratio, lci_rateratio, uci_rateratio) %>%
-  mutate(
-    rate_ratio_text = sprintf("%.1f (%.1f-%.1f)", rate_ratio, lci_rateratio, uci_rateratio)
-  ) %>%
-  dplyr::select(age, rate_ratio_text) %>%
-  rename("Age Group\n(years)" = age, "Rate Ratio (95% CI)" = rate_ratio_text)
+# Dataset (and streamline columns)
+df <- as.data.frame(read_excel(paste0(dir_path, 
+                                      "input/2.gaza_list_capture_analysis_pub.xlsx"), sheet = "Gaza"))
+x <- c("id", "list1", "list2", "list3", "age", "gender", "month_death",
+       "year_death", "gov_ns", "gov")
+df <- df[, x]
 
-# Convert the table to a grob with larger text
-table_grob <- tableGrob(rate_ratio_table, rows = NULL, theme = ttheme_minimal(
-  core = list(fg_params = list(fontsize = 8, fontfamily = "Arial")),
-  colhead = list(fg_params = list(fontsize = 9, fontface = "bold", fontfamily = "Arial"))
-))
 
-# Combine plot and table
-combined_plot <- grid.arrange(p, table_grob, ncol = 2, widths = c(3, 1))
 
-ggsave("C:/Users/Zeina Jamaluddine/OneDrive - London School of Hygiene and Tropical Medicine/gaza-capture recapture/github/output/3.figure3.pdf", plot = combined_plot, width = 200, height = 200, units = "mm", device = cairo_pdf, bg = "white")
+# Define colors using viridis palette
+hospital_color <- alpha(viridis(4)[2], 0.5)
+survey_color <- alpha(viridis(4)[3], 0.5)
+social_media_color <- alpha(viridis(4)[4], 0.5)
+
+# Function to create Euler diagram with counts, percentages, and labels outside
+create_euler <- function(data, title) {
+  set1 <- which(data$list1 == 1)
+  set2 <- which(data$list2 == 1)
+  set3 <- which(data$list3 == 1)
+  
+  venn_data <- list(
+    Hospital = set1,
+    Survey = set2,
+    "Social Media" = set3
+  )
+  
+  fit <- euler(venn_data)
+  
+  # Calculate total number of observations
+  total_obs <- nrow(data)
+  
+  # Create custom labels with counts and percentages
+  custom_labels <- sapply(fit$original.values, function(x) {
+    sprintf("%d\n(%.1f%%)", x, x / total_obs * 100)
+  })
+  
+  plot(fit, 
+       quantities = custom_labels,
+       fills = c(hospital_color, survey_color, social_media_color),
+       edges = list(col = "white", lwd = 0),
+       labels = list(font = 0.3, family = "Times New Roman", cex = 1, col = "black"),  
+       quantity = list(font = 0.3, family = "Times New Roman", cex = 1, col = "black"), 
+       legend = FALSE,  # Remove legend
+       shape = "ellipse",  # Use ellipses instead of circles
+       shape_args = list(h = 5, w = 5))  # Adjust the size of the ellipses
+}
+
+# Create Euler diagrams
+euler_overall <- create_euler(df, "Overall")
+euler_male <- create_euler(df %>% filter(gender == "male"), "Male")
+euler_female <- create_euler(df %>% filter(gender == "female"), "Female")
+
+# Combine Euler diagrams with overall on top
+combined_euler <- grid.arrange(
+  euler_overall,
+  arrangeGrob(euler_male, euler_female, ncol = 2),
+  nrow = 2,
+  heights = c(1, 1)
+  
+)
+
+
+
+# Display the plot
+print(euler_overall)
+# Save the combined plot as a high-resolution PDF
+ggsave(paste0(dir_path, "output/5.figure3.pdf"),
+       plot = euler_overall,
+       width = 200,
+       height = 200,
+       units = "mm",
+       device = cairo_pdf,
+       bg = "white")
+
+
 
