@@ -14,8 +14,7 @@ library(showtext)
 library(viridis)
 
 # Path
-file_path <- "C:/Users/Zeina Jamaluddine/OneDrive - London School of Hygiene and Tropical Medicine/gaza-capture recapture/github/input/1.figure1.xlsx"
-
+file_path <- "C:/Users/Zeina Jamaluddine/OneDrive - London School of Hygiene and Tropical Medicine/gaza-capture recapture/Analysis/imp_fc_02112024/input/1.figure1.xlsx"
 data <- read_excel(file_path)
 
 # Convert the Date column to Date type
@@ -54,10 +53,10 @@ p <- ggplot(data_long, aes(x = Date, y = Count, fill = Source)) +
   scale_y_continuous(labels = scales::comma)  
 
 # Define the labels and their corresponding dates
-labels <- c("6/9 hospitals reporting\nAl Shifa Siege",
+labels <- c("6/9 hospitals reporting\n",
             "5/9 hospitals reporting\n",
             "3/9 hospitals reporting\n",
-            "2/9 hospitals reporting\nNasser Siege",
+            "2/9 hospitals reporting\n",
             "3/9 hospitals reporting\n",
             "5/9 hospitlas reporting\n")
 
@@ -84,5 +83,4 @@ p <- p + scale_x_date(breaks = seq(as.Date("2023-05-01"), max(data$Date), by = "
 
 print(p)
 
-
-ggsave("C:/Users/Zeina Jamaluddine/OneDrive - London School of Hygiene and Tropical Medicine/gaza-capture recapture/github/output/1.figure1.pdf", plot = p, width = 10, height = 8, units = "in", device = cairo_pdf, bg = "white")
+ggsave("C:/Users/Zeina Jamaluddine/OneDrive - London School of Hygiene and Tropical Medicine/gaza-capture recapture/Analysis/imp_fc_02112024/output/1.figure1.pdf", plot = p, width = 10, height = 8, units = "in", device = cairo_pdf, bg = "white")
