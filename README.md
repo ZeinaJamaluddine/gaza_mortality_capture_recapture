@@ -11,13 +11,12 @@ Download R and RStudio (see download links on [https://posit.co/download/rstudio
 `\output` folder will include the output tables and graphs that will be saved automatically. 
 
 ## Description of each R script
-* `1.figure1.R` figure 1- cumulative number of deaths reported by the MoH over time, by source. 
-* `2.gaza_capture_recapture_code.R`  capture recapture analysis. 
+* `1.figure1.R` figure 1- Cumulative number of deaths reported by the MoH over time, by source. Numbers of reporting hospitals are shown to provide context.
+* `2.gaza_capture_recapture_code.R` capture recapture analyses. 
 * `3.bespoke_functions.R` contains functions needed for different steps in the analysis.
 * `4.figure2.R` figure 2- percentage distribution of listed deaths by month of death, age, and sex within each list.
-* `5.figure3.R` figure 3- annualised age- and sex-specific traumatic injury mortality rates per 1,000 population between 7 October 2023 and 30 June 2024. The pre-war (2021) age-specific mortality rate due to all causes is shown for comparison, and corresponding age-specific rate ratios (for both sexes combined) are shown to the right of the plot.
-* `6.figure4.R` figure 4- deaths reported by the Armed Conflict Location and Event Data Project (ACLED), 13 by governorate and month; percentage of buildings destroyed by governorate and month based on UNOSAT and the Gaza 2017 census of buildings.
-* `7.sup_figure1.R` supplementary material figure 1- overlap among the three lists.
-* `8.sup_figure2.R` supplementary material figure 2- estimated number of traumatic injury deaths by month; estimated percentage of traumatic injury deaths that were not captured by any of the three lists, by month.
-
+* `5.figure3.R` figure 3- overlap among the three lists.
+* `6.figure4.R` figure 4- annualised age- and sex-specific traumatic injury mortality rates per 1,000 population between 7 October 2023 and 30 June 2024; age-specific rate ratios (for both sexes combined) are shown to the right of the plot, with the pre-war (2022) mortality rates as the reference.
+* `7.figure5.R` figure 5- deaths reported by the Armed Conflict Location and Event Data Project (ACLED), by governorate and month; percentage of buildings destroyed by governorate and month based on UNOSAT and the Gaza 2017 census of buildings.
+* `8.sup_figure2.R` supplementary material figure 2- estimated number of traumatic injury deaths by month adjusted for age and sex; estimated percentage of traumatic injury deaths that were not captured by any of the three lists, by month; shaded area indicates the 95% confidence interval.
 
