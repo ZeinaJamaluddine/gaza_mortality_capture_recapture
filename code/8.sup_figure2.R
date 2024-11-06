@@ -2,8 +2,6 @@
 ###      Gaza-CAPTURE-RECAPTURE ANALYSIS Supp-Figure2  ###
 #..........................................................................................
 
-#..........................................................................................
-
 # Load required libraries
 library(readxl)
 library(ggplot2)
@@ -17,7 +15,7 @@ library(cowplot)
 loadfonts(device = "win")  
 
 # Read the Excel file
-month_df <- read_excel("C:/Users/Zeina Jamaluddine/OneDrive - London School of Hygiene and Tropical Medicine/gaza-capture recapture/github/input/supp_month.xlsx")
+month_df <- read_excel("C:/Users/Zeina Jamaluddine/OneDrive - London School of Hygiene and Tropical Medicine/gaza-capture recapture/Analysis/imp_fc_02112024/input/supp_month.xlsx")
 
 # Ensure all required columns are present
 required_columns <- c("stratum", "unlisted", "unlisted_lci", "unlisted_uci", "total_deaths_est", "total_deaths_lci", "total_deaths_uci")
@@ -36,6 +34,16 @@ month_df <- month_df %>%
     percentage = unlisted / total_deaths_est,
     percentage_lci = unlisted_lci / total_deaths_lci,
     percentage_uci = unlisted_uci / total_deaths_uci
+  )
+
+# Common theme settings
+common_theme <- theme_minimal(base_family = "Arial") +
+  theme(
+    axis.text.x = element_text(angle = 0, hjust = 0.5, family = "Arial", size = 14),
+    axis.text.y = element_text(family = "Arial", size = 14),
+    axis.title.y = element_text(family = "Arial", size = 16, margin = margin(r = 20)),
+    text = element_text(family = "Arial", size = 14),
+    plot.margin = margin(t = 10, r = 10, b = 10, l = 10)
   )
 
 # Create the top plot (estimated deaths)
@@ -59,47 +67,56 @@ p_top <- ggplot(month_df, aes(x = stratum, group = 1)) +
   labs(x = NULL, 
        y = "Estimated number of deaths") +
   
-  theme_minimal(base_family = "Times New Roman") +
+  common_theme +
   theme(
-    axis.text.x = element_text(angle = 0, hjust = 0.5, family = "Times New Roman", size = 14), # Increase x-axis text size
-    axis.text.y = element_text(family = "Times New Roman", size = 14), # Increase y-axis text size
-    axis.title.y = element_text(family = "Times New Roman", size = 16), # Increase y-axis title size
-    legend.text = element_text(family = "Times New Roman", size = 12), # Increase legend text size
-    text = element_text(family = "Times New Roman", size=14), # Increase overall text size
+    legend.text = element_text(family = "Arial", size = 12),
     legend.position = "top",
     legend.title = element_blank()
   )
 
-# Create the bottom plot (percentage of unlisted deaths)
+# Create the bottom plot (percentage of unlisted deaths) with more space between y-axis title and labels
 p_bottom <- ggplot(month_df, aes(x = stratum, group = 1)) +
   geom_line(aes(y = percentage), color = "grey50", size = 0.5) +
   geom_point(aes(y = percentage), color =  "grey50", size = 1) +
   
   geom_text(aes(y = percentage, 
                 label = scales::percent(percentage, accuracy = 1)),
-            vjust = -0.5, size=4.5, family="Times New Roman") +
+            vjust = -0.5, size = 4.5, family = "Arial") +
   
-  scale_y_continuous(labels= scales::percent_format(), limits=c(0,1.0), expand=expansion(mult=c(0.05,0.1))) + 
-  labs(x="Month",
-       y="Percentage of deaths unlisted") + 
-  theme_minimal(base_family="Times New Roman") + 
-  theme(axis.text.x=element_text(angle=0,hjust=0.5,family="Times New Roman",size=14), 
-        axis.text.y=element_text(family="Times New Roman",size=14), # Increase y-axis text size
-        axis.title.y=element_text(family="Times New Roman",size=16), # Increase y-axis title size
-        text=element_text(family="Times New Roman",size=14)) # Increase overall text size
+  scale_y_continuous(labels = scales::percent_format(), limits = c(0, 1.0), expand = expansion(mult = c(0.05, 0.1))) + 
+  labs(x = "Month",
+       y = "Percentage of deaths unlisted") + 
+  common_theme +
+  theme(
+    axis.title.y = element_text(margin = margin(r = 30))  # Increased margin for y-axis title
+  )
 
 # Combine the plots
 combined_plot <- plot_grid(
   p_top, p_bottom,
-  ncol=1,
-  align='v',
-  axis='lr',
-  rel_heights=c(1,1)
+  ncol = 1,
+  align = 'v',
+  axis = 'lr',
+  rel_heights = c(1, 1)
 )
 
 # Print the final plot
 print(combined_plot)
 
 # Save the plot
-ggsave("C:/Users/Zeina Jamaluddine/OneDrive - London School of Hygiene and Tropical Medicine/gaza-capture recapture/github/output/6.supp_figure2.pdf", plot = combined_plot, width=12, height=10, device = cairo_pdf, bg = "white")
+ggsave("C:/Users/Zeina Jamaluddine/OneDrive - London School of Hygiene and Tropical Medicine/gaza-capture recapture/Analysis/imp_fc_02112024/output/6.supp_figure2.pdf", 
+       plot = combined_plot, 
+       width = 12, 
+       height = 10, 
+       device = cairo_pdf, 
+       bg = "white")
 
+# Save the plot as high-quality JPEG
+ggsave("C:/Users/Zeina Jamaluddine/OneDrive - London School of Hygiene and Tropical Medicine/gaza-capture recapture/Analysis/imp_fc_02112024/output/6.supp_figure2.jpg", 
+       plot = combined_plot, 
+       width = 10, 
+       height = 10, 
+       dpi = 300,  # High resolution
+       device = "jpeg", 
+       quality = 100,  # Highest quality
+       bg = "white")
