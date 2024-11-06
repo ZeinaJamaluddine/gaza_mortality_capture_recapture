@@ -76,7 +76,7 @@
     
     # Start and end date of analysis period
     date_start <- as.Date("2023-10-07")
-    date_end <- as.Date("2023-07-31")
+    date_end <- as.Date("2024-06-30")
 
     # Plausibility thresholds
     plausibility <- 5 # if unlisted estimate is >= 5x total n listed, exclude
