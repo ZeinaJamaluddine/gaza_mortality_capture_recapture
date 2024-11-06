@@ -67,7 +67,7 @@
     # List names
     list_names <- data.frame(
       list = paste0("list", 1:3), 
-      list_name = c("hospitals", "survey", "social media"),
+      list_name = c("list1", "list2", "list3"),
       list_colour = palette_gen[c(3, 8, 13)]
     )
     
