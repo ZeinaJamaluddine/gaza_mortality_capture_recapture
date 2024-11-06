@@ -3,169 +3,100 @@
 #..........................................................................................
 
 #..........................................................................................
-
-# Load necessary libraries
-library(readxl)
+# Load required libraries
 library(ggplot2)
 library(dplyr)
-library(lubridate)
-library(patchwork)
-library(sf)
-library(rnaturalearth)
-library(rnaturalearthdata)
-library(geodata)
-library(viridis)
 library(tidyr)
+library(readxl)
+library(viridis)
+library(gridExtra)
+library(stringr)
 
-# Specify the path to your Excel file
-file_path <- "C:/Users/Zeina Jamaluddine/OneDrive - London School of Hygiene and Tropical Medicine/gaza-capture recapture/github/input/4.figure4.xlsx"
-data <- read_excel(file_path)
+# Read the Excel file (replace with your actual file path)
+rate_df <- read_excel("C:/Users/Zeina Jamaluddine/OneDrive - London School of Hygiene and Tropical Medicine/gaza-capture recapture/Analysis/imp_fc_02112024/input/4.figure4_unadj.xlsx")
 
-# Read the Gaza shapefile from the zip file
-temp_dir <- tempdir()
-unzip("C:/Users/Zeina Jamaluddine/OneDrive - London School of Hygiene and Tropical Medicine/gaza-capture recapture/github/input/pse_adm_pamop_20231019_shp.zip", exdir = temp_dir)
-gaza_map <- st_read(file.path(temp_dir, "pse_admbnda_adm2_pamop_20231019.shp"))
+# Define the correct age order
+age_order <- c("0 to 14 y", "15 to 29 y", "30 to 44 y", "45 to 59 y", "60+ y")
 
-# Filter and process the data
-gaza_data <- data %>%
-  filter(admin1 == "Gaza Strip" & !is.na(admin2)) %>%
-  mutate(event_date = ymd(event_date),
-         month = floor_date(event_date, "month")) %>%
-  filter(month <= ymd("2024-06-30"))
+# Reshape the data
+rate_df_long <- rate_df %>%
+  dplyr::select(age, 
+                rate_male_2023, rate_lci_male_2023, rate_uci_male_2023,
+                rate_female_2023, rate_lci_female_2023, rate_uci_female_2023) %>%
+  tidyr::pivot_longer(
+    cols = c(rate_male_2023, rate_female_2023),
+    names_to = "gender",
+    values_to = "rate"
+  ) %>%
+  dplyr::mutate(
+    gender = dplyr::if_else(gender == "rate_male_2023", "Male", "Female"),
+    lci = dplyr::if_else(gender == "Male", rate_lci_male_2023, rate_lci_female_2023),
+    uci = dplyr::if_else(gender == "Male", rate_uci_male_2023, rate_uci_female_2023),
+    age = factor(str_replace(age, "y", " y"), levels = age_order),
+    gender = factor(gender, levels = c("Male", "Female"))
+  ) %>%
+  dplyr::select(age, gender, rate, lci, uci)
 
-# Summarize fatalities
-monthly_data <- gaza_data %>%
-  group_by(month, admin2) %>%
-  summarise(fatalities = sum(fatalities), .groups = "drop") %>%
-  mutate(admin2 = factor(admin2, levels = c("North Gaza", "Gaza City", "Deir El Balah", "Khan Yunis", "Rafah")))
+# Create custom color palette using Viridis
+custom_colors <- viridis(2, option = "D", end = 0.8)
 
-monthly_totals <- monthly_data %>%
-  group_by(month) %>%
-  summarise(total_fatalities = sum(fatalities), .groups = "drop")
-
-# Define colors
-governorate_levels <- c("North Gaza", "Gaza City", "Deir El Balah", "Khan Yunis", "Rafah")
-custom_colors <- alpha(viridis(length(governorate_levels), option = "D", begin = 0.1, end = 0.9), 0.8)
-names(custom_colors) <- governorate_levels
-
-# Prepare the map
-gaza_map <- gaza_map %>%
-  filter(ADM1_EN == "Gaza Strip") %>%
-  st_transform(4326) %>%
-  mutate(admin2 = recode(ADM2_EN,
-                         "Gaza" = "Gaza City",
-                         "Deir Al-Balah" = "Deir El Balah",
-                         "Khan Younis" = "Khan Yunis",
-                         .default = ADM2_EN))
-
-# Base theme
-base_theme <- theme_minimal(base_size = 12) +
-  theme(legend.position = "none",
-        plot.title = element_text(hjust = 0, face = "plain", size = 14),
-        axis.text.x = element_text(angle = 0, hjust = 0.5, size = 10),
-        axis.title.x = element_blank(),
-        axis.title.y = element_text(size = 12, margin = margin(r = 10)),
-        panel.grid.major = element_blank(),
-        panel.grid.minor = element_blank())
-
-# Plot 1A: Cumulative Fatalities
-plot1A <- ggplot(monthly_data, aes(x = month, y = fatalities, fill = admin2)) +
-  geom_bar(stat = "identity", position = "stack") +
-  geom_text(data = monthly_totals, aes(x = month, y = total_fatalities, label = total_fatalities),
-            vjust = -0.5, size = 3, inherit.aes = FALSE) +
-  scale_fill_manual(values = custom_colors) +
-  scale_x_date(date_labels = "%b", date_breaks = "1 month") +
-  scale_y_continuous(labels = scales::comma) +
-  labs(title = "Monthly Deaths by Governorate", y = "Deaths") +
-  base_theme
-
-# Plot 1B: Proportion of Fatalities
-plot1B <- ggplot(monthly_data, aes(x = month, y = fatalities, fill = admin2)) +
-  geom_bar(stat = "identity", position = "fill") +
-  scale_fill_manual(values = custom_colors) +
-  scale_x_date(date_labels = "%b", date_breaks = "1 month") +
-  labs(title = "Monthly Proportion of Deaths by Governorate", y = "Proportion") +
-  base_theme
-
-# Map plot
-plot_map <- ggplot(gaza_map) +
-  geom_sf(aes(fill = admin2)) +
-  scale_fill_manual(values = custom_colors) +
-  geom_sf_text(aes(label = admin2), size = 3, color = "black") +
-  theme_void() +
-  theme(legend.position = "none")+
-  annotate("text", x = Inf, y = Inf, label = "Legend", hjust = 2, vjust = 1, size = 5)
-
-
-# Destruction data
-destruction_data <- data.frame(
-  date = as.Date(c("2023-10-10", "2023-10-15", "2023-11-07", "2023-11-26", "2024-01-06", "2024-02-29", "2024-05-03", "2024-07-06")),
-  North = c(0, 13, 26, 35, 49, 55, 77, 82),
-  Gaza_city = c(1, 4, 12, 22, 38, 42, 66, 68),
-  Deir_el_balah = c(0, 2, 5, 7, 17, 21, 41, 43),
-  Khan_Younis = c(0, 0, 6, 7, 29, 52, 76, 75),
-  Rafah = c(0, 2, 4, 4, 5, 6, 14, 58)
-)
-
-destruction_data_long <- pivot_longer(destruction_data, cols = -date, names_to = "Governorate", values_to = "Destruction") %>%
-  mutate(Governorate_num = as.numeric(factor(Governorate, levels = c("Rafah", "Khan_Younis", "Deir_el_balah", "Gaza_city", "North"))))
-
-# Destruction plot
-plot_destruction <- ggplot(destruction_data_long, aes(x = Governorate_num, y = date)) +
-  geom_tile(aes(fill = Destruction), color = "black", size = 0.5, width = 0.8, height = 15) +
-  geom_text(aes(label = Destruction), color = "black", size = 3, fontface = "plain", vjust = 0.5, hjust = 0.5) +
-  scale_fill_viridis(option = "D", direction = -1, begin = 0.1, end = 0.9, alpha = 0.7, name = "% Destruction") +
-  scale_y_date(date_breaks = "1 month", date_labels = "%b") +
-  scale_x_continuous(breaks = 1:5, labels = c("Rafah", "Khan Yunis", "Deir el Balah", "Gaza City", "North"),
-                     expand = expansion(mult = c(0.1, 0.1))) +
-  theme_minimal(base_size = 12) +
+# Create the dot plot
+p <- ggplot(rate_df_long, aes(x = age, y = rate, color = gender)) +
+  geom_point(position = position_dodge(width = 0.5), size = 3) +
+  geom_errorbar(aes(ymin = lci, ymax = uci), 
+                position = position_dodge(width = 0.5), 
+                width = 0.2) +
+  scale_color_manual(values = setNames(custom_colors, c("Male", "Female"))) +
+  labs(y = "Annualised age-specific mortality rate per 1,000",
+       x = "Age group (years)",
+       color = "Sex") +
+  theme_minimal() +
   theme(
-    axis.text = element_text(size = 10),
+    text = element_text(family = "Arial", size = 12),
+    legend.position = "top",
+    axis.text.x = element_text(angle = 45, hjust = 1, size = 10, margin = margin(t = 10)),
+    axis.text.y = element_text(size = 10, margin = margin(r = 10)),
     axis.title = element_text(size = 12),
-    legend.text = element_text(size = 10),
-    legend.title = element_text(size = 12),
-    plot.title = element_text(size = 14),
-    axis.text.y = element_text(angle = 0, hjust = 1),
-    panel.grid = element_blank(),
-    legend.position = "right",
-    axis.title.x = element_text(angle = 0, vjust = 0.5)
+    axis.title.x = element_text(margin = margin(t = 20)),
+    axis.title.y = element_text(margin = margin(r = 20)),
+    plot.title = element_text(size = 14, face = "bold"),
+    panel.grid.major = element_line(color = "gray90"),
+    panel.grid.minor = element_blank()
   ) +
-  labs(title = "Progression of Destruction in Gaza Governorates", y = "Date", x = "Governorate") +
-  coord_flip()
-# Combine all plots without excess space, keeping top and bottom same size
-top_plot <- (plot1A + plot1B + plot_map) + 
-  plot_layout(ncol = 3, widths = c(2, 2, 1)) & 
-  theme(plot.margin = margin(5, 5, 5, 5))  
+  scale_x_discrete(breaks = age_order) +
+  scale_y_continuous(expand = c(0, 0), limits = c(0, max(rate_df_long$uci) * 1.1))
 
-# Adjust destruction plot size and font for consistency
-plot_destruction <- plot_destruction + 
-  theme(
-    axis.text = element_text(size = 8),
-    axis.title = element_text(size = 10),
-    legend.text = element_text(size = 8),
-    legend.title = element_text(size = 10),
-    plot.title = element_text(size = 12)
-  )
-# Combine all plots
-top_plot <- (plot1A + plot1B + plot_map) + 
-  plot_layout(ncol = 3, widths = c(2, 2, 1)) & 
-  theme(plot.margin = margin(10, 5, 5, 5))  
+# Create rate ratio table
+rate_ratio_table <- rate_df %>%
+  dplyr::select(age, rate_ratio, lci_rateratio, uci_rateratio) %>%
+  dplyr::mutate(
+    age = factor(str_replace(age, "y", " y"), levels = age_order),
+    rate_ratio_text = sprintf("%.1f(%.1f-%.1f)", rate_ratio, lci_rateratio, uci_rateratio)
+  ) %>%
+  dplyr::select(age, rate_ratio_text)
 
-# Adjust destruction plot size and font for consistency
-plot_destruction <- plot_destruction + 
-  theme(
-    axis.text = element_text(size = 8),
-    axis.title = element_text(size = 10),
-    legend.text = element_text(size = 8),
-    legend.title = element_text(size = 10),
-    plot.title = element_text(size = 12)
-  )
+# Rename columns without using rename()
+names(rate_ratio_table) <- c("Age Group", "Rate Ratio\n2023/2022 (95% CI)")
 
-# Combine the plots
-combined_plot <- plot_spacer()/top_plot /plot_spacer()/ plot_destruction / plot_spacer() +
-  plot_layout(ncol = 1, heights = c(0.5, 1,0.1,1,0.5)) & 
-  theme(plot.margin = margin(30, 10, 10, 30))  
+# Convert the table to a grob
+table_grob <- tableGrob(rate_ratio_table, rows = NULL, theme = ttheme_minimal(
+  core = list(fg_params = list(fontsize = 8)),
+  colhead = list(fg_params = list(fontsize = 9, fontface = "bold"))
+))
 
-# Save the combined plot as a PDF
-ggsave("C:/Users/Zeina Jamaluddine/OneDrive - London School of Hygiene and Tropical Medicine/gaza-capture recapture/github/output/4.figure4.pdf", plot = combined_plot, width = 12, height = 14, units = "in", device = cairo_pdf, bg = "white")
+# Combine plot and table
+combined_plot <- grid.arrange(p, table_grob, ncol = 2, widths = c(3, 1))
 
+# Display the combined plot
+print(combined_plot)
+
+# Save the plot (optional)
+
+# Save the combined plot as a high-resolution PDF
+ggsave(paste0(dir_path, "output/6.figure4.pdf"),
+       plot = combined_plot,
+       width = 200,
+       height = 150,
+       units = "mm",
+       device = cairo_pdf,
+       bg = "white")
